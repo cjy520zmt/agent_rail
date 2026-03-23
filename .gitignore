@@ -10,5 +10,6 @@ coverage
 *.log
 .DS_Store
 target
+*.tsbuildinfo
 .idea
 .vscode

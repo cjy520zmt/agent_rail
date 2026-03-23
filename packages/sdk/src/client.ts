@@ -1,4 +1,4 @@
-import type { ExecutionRequest, Policy } from '@agentrail/shared';
+import type { AuditEvent, ExecutionRequest, Policy } from '@agentrail/shared';
 
 export interface AgentRailClientOptions {
   baseUrl: string;
@@ -42,5 +42,10 @@ export class AgentRailClient {
     });
 
     return response.json();
+  }
+
+  async listAudit(limit = 25) {
+    const response = await this.fetchImpl(`${this.baseUrl}/audit?limit=${limit}`);
+    return response.json() as Promise<{ items: AuditEvent[] }>;
   }
 }
