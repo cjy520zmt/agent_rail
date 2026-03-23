@@ -1,0 +1,19 @@
+[package]
+name = "agent-vault"
+version = "0.1.0"
+description = "Minimal AgentRail vault program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "agent_vault"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+
+[dependencies]
+anchor-lang = "0.30.1"
