@@ -8,8 +8,8 @@ const ConfigSchema = z.object({
   X402_ENABLED: z
     .string()
     .optional()
+    .default('false')
     .transform((value) => value === 'true')
-    .default(false)
 });
 
 export const config = ConfigSchema.parse(process.env);

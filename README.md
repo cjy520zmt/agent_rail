@@ -15,8 +15,8 @@ AgentRail is a payments, permissions, and safe-execution layer for AI agents on 
 ## Quick start
 
 ```bash
-pnpm install
-pnpm dev
+corepack pnpm install
+corepack pnpm dev
 ```
 
 By default:
@@ -24,6 +24,13 @@ By default:
 - web runs at `http://localhost:3000`
 - gateway runs at `http://localhost:3001`
 - Solana targets `devnet`
+
+## Demo flow
+
+1. Open the dashboard in `apps/web`
+2. Create a policy with budget and allowlists
+3. Submit an execution request for review
+4. Inspect the risk level, next action, and audit timeline returned by the gateway
 
 ## Hackathon scope
 

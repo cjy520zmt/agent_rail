@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { PolicyInputSchema, type Policy } from '@agentrail/shared';
+import { recordAuditEvent } from '../lib/audit-store.js';
 
 const policies = new Map<string, Policy>();
 
@@ -19,6 +20,12 @@ export const policiesRoute = new Hono()
     };
 
     policies.set(policy.id, policy);
+    recordAuditEvent('policy_created', {
+      policyId: policy.id,
+      name: policy.name,
+      dailyLimitUsd: policy.dailyLimitUsd,
+      perTxLimitUsd: policy.perTxLimitUsd
+    });
 
     return c.json(policy, 201);
   });
