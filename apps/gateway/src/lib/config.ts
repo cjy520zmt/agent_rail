@@ -5,6 +5,7 @@ const ConfigSchema = z.object({
   GATEWAY_PORT: z.coerce.number().default(3001),
   SOLANA_NETWORK: z.string().default('devnet'),
   SOLANA_RPC_URL: z.string().url().default('https://api.devnet.solana.com'),
+  AGENT_VAULT_PROGRAM_ID: z.string().default('11111111111111111111111111111111'),
   X402_ENABLED: z
     .string()
     .optional()

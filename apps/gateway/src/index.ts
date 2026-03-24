@@ -6,6 +6,7 @@ import { auditRoute } from './routes/audit.js';
 import { healthRoute } from './routes/health.js';
 import { policiesRoute } from './routes/policies.js';
 import { executeRoute } from './routes/execute.js';
+import { vaultPlanRoute } from './routes/vault-plan.js';
 
 const app = new Hono();
 
@@ -15,7 +16,7 @@ app.get('/', (c) =>
   c.json({
     name: 'agentrail-gateway',
     status: 'ready',
-    endpoints: ['/health', '/policies', '/execute', '/audit']
+    endpoints: ['/health', '/policies', '/execute', '/audit', '/vault-plan']
   })
 );
 
@@ -23,6 +24,7 @@ app.route('/health', healthRoute);
 app.route('/policies', policiesRoute);
 app.route('/execute', executeRoute);
 app.route('/audit', auditRoute);
+app.route('/vault-plan', vaultPlanRoute);
 
 serve(
   {

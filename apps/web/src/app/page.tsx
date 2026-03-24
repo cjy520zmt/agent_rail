@@ -15,7 +15,7 @@ type Policy = {
 
 type AuditEvent = {
   id: string;
-  type: 'policy_created' | 'tool_payment' | 'simulation' | 'execution';
+  type: 'policy_created' | 'tool_payment' | 'simulation' | 'execution' | 'vault_plan_generated';
   createdAt: string;
   payload: Record<string, unknown>;
 };
@@ -33,6 +33,33 @@ type ExecutionResult = {
       token: string;
       program: string;
       recipient: string;
+    };
+  };
+};
+
+type VaultPlan = {
+  policyId: string;
+  policyName: string;
+  authority: string;
+  network: string;
+  rpcUrl: string;
+  programId: string;
+  vaultPda: string;
+  policyHash: string;
+  limitUnit: 'usd_cents';
+  warnings: string[];
+  instruction: {
+    name: 'initialize_vault';
+    accounts: {
+      authority: string;
+      vault: string;
+      systemProgram: string;
+    };
+    args: {
+      policyHash: string;
+      dailyLimit: number;
+      perTxLimit: number;
+      limitUnit: 'usd_cents';
     };
   };
 };
@@ -98,11 +125,14 @@ async function readJson<T>(path: string, init?: RequestInit) {
 export default function HomePage() {
   const [policyForm, setPolicyForm] = useState<PolicyFormState>(defaultPolicyForm);
   const [executionForm, setExecutionForm] = useState<ExecutionFormState>(defaultExecutionForm);
+  const [vaultAuthority, setVaultAuthority] = useState('');
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [result, setResult] = useState<ExecutionResult | null>(null);
+  const [vaultPlan, setVaultPlan] = useState<VaultPlan | null>(null);
   const [isCreatingPolicy, setIsCreatingPolicy] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isGeneratingVaultPlan, setIsGeneratingVaultPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedPolicy = useMemo(
@@ -132,6 +162,10 @@ export default function HomePage() {
       setError(cause instanceof Error ? cause.message : 'Failed to load dashboard data.');
     });
   }, []);
+
+  useEffect(() => {
+    setVaultPlan(null);
+  }, [executionForm.policyId]);
 
   async function handleCreatePolicy(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -187,6 +221,41 @@ export default function HomePage() {
       setError(cause instanceof Error ? cause.message : 'Failed to run execution review.');
     } finally {
       setIsExecuting(false);
+    }
+  }
+
+  async function handleGenerateVaultPlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (!executionForm.policyId) {
+      setError('Select a policy before generating a vault init preview.');
+      return;
+    }
+
+    if (!vaultAuthority.trim()) {
+      setError('Enter a Solana authority public key before generating a vault init preview.');
+      return;
+    }
+
+    setIsGeneratingVaultPlan(true);
+
+    try {
+      const nextPlan = await readJson<VaultPlan>('/vault-plan', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          policyId: executionForm.policyId,
+          authority: vaultAuthority.trim()
+        })
+      });
+
+      setVaultPlan(nextPlan);
+      await refreshAudit();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to generate a vault init preview.');
+    } finally {
+      setIsGeneratingVaultPlan(false);
     }
   }
 
@@ -443,8 +512,95 @@ export default function HomePage() {
         <article className="card">
           <div className="section-head">
             <div>
+              <h2>Devnet vault init preview</h2>
+              <p>Turn the selected policy into a concrete initialize_vault instruction plan.</p>
+            </div>
+          </div>
+
+          <div className="grid two-up">
+            <div className="stack">
+              <form className="stack" onSubmit={handleGenerateVaultPlan}>
+                <label>
+                  <span>Authority wallet</span>
+                  <input
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    placeholder="Enter a devnet wallet public key"
+                    spellCheck={false}
+                    value={vaultAuthority}
+                    onChange={(event) => setVaultAuthority(event.target.value)}
+                  />
+                </label>
+
+                <button className="button secondary" disabled={isGeneratingVaultPlan} type="submit">
+                  {isGeneratingVaultPlan ? 'Building vault plan…' : 'Generate vault init preview'}
+                </button>
+              </form>
+
+              {selectedPolicy ? (
+                <div className="panel subtle">
+                  <div className="panel-head">
+                    <strong>Policy to bind onchain</strong>
+                    <span>{selectedPolicy.name}</span>
+                  </div>
+                  <p>
+                    Daily ${selectedPolicy.dailyLimitUsd} · Per-tx ${selectedPolicy.perTxLimitUsd} · Tokens{' '}
+                    {selectedPolicy.allowedTokens.join(', ') || 'Any'}
+                  </p>
+                </div>
+              ) : (
+                <p>Create or select a policy first. The preview uses the currently attached policy.</p>
+              )}
+            </div>
+
+            <div className="stack compact">
+              {vaultPlan ? (
+                <>
+                  <div className="panel">
+                    <div className="panel-head">
+                      <strong>Derived vault</strong>
+                      <span>{vaultPlan.network}</span>
+                    </div>
+                    <p>Program: {vaultPlan.programId}</p>
+                    <p>Vault PDA: {vaultPlan.vaultPda}</p>
+                    <p>Policy hash: {vaultPlan.policyHash}</p>
+                    <p>RPC: {vaultPlan.rpcUrl}</p>
+                  </div>
+
+                  <div className="panel">
+                    <div className="panel-head">
+                      <strong>Instruction payload</strong>
+                      <span>{vaultPlan.instruction.name}</span>
+                    </div>
+                    <pre className="code small">{JSON.stringify(vaultPlan.instruction, null, 2)}</pre>
+                  </div>
+
+                  <div className="panel subtle">
+                    <div className="panel-head">
+                      <strong>Warnings</strong>
+                      <span>{vaultPlan.warnings.length}</span>
+                    </div>
+                    <ul>
+                      {vaultPlan.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <p>Generate a preview to inspect the PDA, policy hash, and onchain instruction arguments.</p>
+              )}
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="section">
+        <article className="card">
+          <div className="section-head">
+            <div>
               <h2>Audit timeline</h2>
-              <p>Every policy creation, simulation, and execution review is captured here.</p>
+              <p>Every policy creation, simulation, execution review, and vault planning step is captured here.</p>
             </div>
             <button className="button secondary" onClick={() => void refreshAudit()} type="button">
               Refresh audit
