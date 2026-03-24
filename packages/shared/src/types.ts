@@ -1,5 +1,12 @@
 export type RiskLevel = 'low' | 'medium' | 'high';
 
+export type AuditEventType =
+  | 'policy_created'
+  | 'tool_payment'
+  | 'simulation'
+  | 'execution'
+  | 'vault_plan_generated';
+
 export interface Policy {
   id: string;
   name: string;
@@ -33,9 +40,41 @@ export interface RiskReport {
   };
 }
 
+export interface VaultPlanRequest {
+  policyId: string;
+  authority: string;
+}
+
+export interface VaultPlan {
+  policyId: string;
+  policyName: string;
+  authority: string;
+  network: string;
+  rpcUrl: string;
+  programId: string;
+  vaultPda: string;
+  policyHash: string;
+  limitUnit: 'usd_cents';
+  warnings: string[];
+  instruction: {
+    name: 'initialize_vault';
+    accounts: {
+      authority: string;
+      vault: string;
+      systemProgram: string;
+    };
+    args: {
+      policyHash: string;
+      dailyLimit: number;
+      perTxLimit: number;
+      limitUnit: 'usd_cents';
+    };
+  };
+}
+
 export interface AuditEvent {
   id: string;
-  type: 'policy_created' | 'tool_payment' | 'simulation' | 'execution';
+  type: AuditEventType;
   createdAt: string;
   payload: Record<string, unknown>;
 }

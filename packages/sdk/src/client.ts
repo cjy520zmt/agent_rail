@@ -1,4 +1,4 @@
-import type { AuditEvent, ExecutionRequest, Policy } from '@agentrail/shared';
+import type { AuditEvent, ExecutionRequest, Policy, VaultPlan, VaultPlanRequest } from '@agentrail/shared';
 
 export interface AgentRailClientOptions {
   baseUrl: string;
@@ -47,5 +47,15 @@ export class AgentRailClient {
   async listAudit(limit = 25) {
     const response = await this.fetchImpl(`${this.baseUrl}/audit?limit=${limit}`);
     return response.json() as Promise<{ items: AuditEvent[] }>;
+  }
+
+  async createVaultPlan(input: VaultPlanRequest) {
+    const response = await this.fetchImpl(`${this.baseUrl}/vault-plan`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+
+    return response.json() as Promise<VaultPlan>;
   }
 }

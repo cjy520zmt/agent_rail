@@ -24,6 +24,15 @@ By default:
 - web runs at `http://localhost:3000`
 - gateway runs at `http://localhost:3001`
 - Solana targets `devnet`
+- `AGENT_VAULT_PROGRAM_ID` falls back to the placeholder system address until you deploy the Anchor program
+
+Gateway API includes:
+
+- `GET /health`
+- `GET/POST /policies`
+- `POST /execute`
+- `GET /audit`
+- `POST /vault-plan` (derive vault PDA + initialize_vault preview)
 
 ## Demo flow
 
@@ -31,6 +40,7 @@ By default:
 2. Create a policy with budget and allowlists
 3. Submit an execution request for review
 4. Inspect the risk level, next action, and audit timeline returned by the gateway
+5. Generate a devnet `initialize_vault` preview by entering an authority wallet and verify the derived PDA + policy hash
 
 ## Hackathon scope
 
